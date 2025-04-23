@@ -161,5 +161,103 @@
             "preprocessing_params": "--cut_front --cut_tail --trim_poly_x --cut_mean_quality 30 --qualified_quality_phred   30    --unqualified_percent_limit 10 --length_required 50",
             "variant_calling_params": "--ignore-overlaps --count-orphans --no-BAQ --max-depth 0 --min-BQ 0';-t 0.25 -q 20   -m10"
         }
+    },
+    "irma": {
+        "mapping_stats": {
+            // TODO
+            "fn": "mapping_illumina(?:_\\d{8})?\\.tab",
+            "sample_col_idx": 2,
+            "header_row_idx": 1,
+            "required": true,
+            "function": null,
+            "multiple_samples": true,
+            "split_by_batch": true,
+            "content": {
+                "analysis_date": "analysis_date",
+                "depth_of_coverage_value": "medianDPcoveragevirus",
+                "number_of_variants_in_consensus": "Variantsinconsensusx10",
+                "number_of_variants_with_effect": "MissenseVariants",
+                "per_genome_greater_10x": "Coverage>10x(%)",
+                "per_Ns": "%Ns10x",
+                "per_reads_host": "%readshost",
+                "per_reads_virus": "%readsvirus",
+                "per_unmapped": "%unmapedreads",
+                "qc_filtered": "totalreads",
+                "reference_genome_accession": "Virussequence",
+                "read_length": "read_length",
+                "number_of_unambiguous_bases": "Total_Unambiguous_Bases",
+                "number_of_Ns": "Total_Ns_count"
+            }
+        },
+        "variants_long_table": {
+            "fn": "variants_long_table.csv",
+            "sample_col_idx": 1,
+            "header_row_idx": 1,
+            "required": true,
+            "multiple_samples": true,
+            "split_by_batch": true,
+            "function": "parse_long_table",
+            "content": {
+                "sample" : "SAMPLE",
+                "chromosome": "CHROM",
+                "pos": "POS", 
+                "alt": "ALT", 
+                "ref": "REF",
+                "Filter": "FILTER",
+                "dp": "DP",
+                "ref_dp": "REF_DP",
+                "alt_dp": "ALT_DP",
+                "af": "AF",
+                "effect": "EFFECT",
+                "hgvs_c": "HGVS_C",
+                "hgvs_p": "HGVS_P",
+                "hgvs_p_1_letter": "HGVS_P_1LETTER",
+                "caller" : "CALLER",
+                "lineage" : "LINEAGE",
+                "gene" : "GENE"
+            }
+        },
+        "mapping_consensus": {
+            // TODO
+            "fn": ".consensus.fa",
+            "required": false,
+            "function": "handle_consensus_fasta",
+            "extract": true,
+            "content": {
+                "consensus_sequence_name" : "sequence_name",
+                "consensus_genome_length" : "genome_length",
+                "consensus_sequence_filename" : "sequence_filename",
+                "consensus_sequence_filepath" : "sequence_filepath",
+                "consensus_sequence_md5" : "sequence_md5", 
+                "number_of_base_pairs_sequenced" : "number_of_base_pairs_sequenced"
+            }
+        },
+        "other_files": {
+            "fn": "^(?!.*tbi$).*.filtered.vcf.gz", // change for nextclade file
+            "required": false,
+            "function": null,
+            "extract": true,
+            "content": {}
+        },
+        "workflow_summary": {
+            "fn": "multiqc_report.html",
+            "required": true,
+            "multiple_samples": true,
+            "function": null,
+            "content": {
+                "software_version": {
+                    "bioinformatics_protocol_software_version": "nf-core/taxprofiler",
+                    "host_reads_detection_method_software_version": "kraken2"
+
+                },
+                "software_name": {
+                    "bioinformatics_protocol_software_name": "nf-core/taxprofiler",
+                    "host_reads_detection_method_software_name": "kraken2"
+                }
+            }
+        },
+        "fixed_values": {
+            // TODO
+        }
     }
 }
