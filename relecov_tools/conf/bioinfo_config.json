@@ -163,10 +163,9 @@
         }
     },
     "irma": {
-        "mapping_stats": {
-            // TODO
-            "fn": "mapping_illumina(?:_\\d{8})?\\.tab",
-            "sample_col_idx": 2,
+        "summary_stats": {
+            "fn": "summary_stats(?:_\\d{8})?\\.tab",
+            "sample_col_idx": 1,
             "header_row_idx": 1,
             "required": true,
             "function": null,
@@ -182,9 +181,24 @@
                 "per_reads_host": "%readshost",
                 "per_reads_virus": "%readsvirus",
                 "per_unmapped": "%unmapedreads",
-                "qc_filtered": "totalreads",
-                "reference_genome_accession": "Virussequence",
+                "qc_filtered": "qc_filtered_reads",
                 "read_length": "read_length",
+                "number_of_unambiguous_bases": "Total_Unambiguous_Bases",
+                "number_of_Ns": "Total_Ns_count",
+                "type_assignment": "flu_type",
+                "subtype_assignment": "flu_subtype",
+                "clade_assignment": "clade"
+            }
+        },
+        "quality_control": {
+            "fn": "qc_metrics.tsv",
+            "sample_col_idx": 1,
+            "header_row_idx": 1,
+            "required": true,
+            "function": null,
+            "multiple_samples": true,
+            "split_by_batch": true,
+            "content": {
                 "number_of_unambiguous_bases": "Total_Unambiguous_Bases",
                 "number_of_Ns": "Total_Ns_count"
             }
@@ -213,12 +227,11 @@
                 "hgvs_p": "HGVS_P",
                 "hgvs_p_1_letter": "HGVS_P_1LETTER",
                 "caller" : "CALLER",
-                "lineage" : "LINEAGE",
-                "gene" : "GENE"
+                "clade": "CLADE",
+                "gene": "GENE"
             }
         },
         "mapping_consensus": {
-            // TODO
             "fn": ".consensus.fa",
             "required": false,
             "function": "handle_consensus_fasta",
@@ -233,31 +246,43 @@
             }
         },
         "other_files": {
-            "fn": "^(?!.*tbi$).*.filtered.vcf.gz", // change for nextclade file
+            "fn": ".*\\.vcf|nextclade_combined.csv",
             "required": false,
             "function": null,
             "extract": true,
             "content": {}
         },
-        "workflow_summary": {
-            "fn": "multiqc_report.html",
-            "required": true,
-            "multiple_samples": true,
-            "function": null,
-            "content": {
-                "software_version": {
-                    "bioinformatics_protocol_software_version": "nf-core/taxprofiler",
-                    "host_reads_detection_method_software_version": "kraken2"
-
-                },
-                "software_name": {
-                    "bioinformatics_protocol_software_name": "nf-core/taxprofiler",
-                    "host_reads_detection_method_software_name": "kraken2"
-                }
-            }
-        },
         "fixed_values": {
-            // TODO
+            "assembly": "IRMA (Iterative Refinement Meta-Assembler)",
+            "assembly_params": "Default NCIT:C48156",
+            "commercial_open_source_both": "Open Source",
+            "consensus_params": "MIN_AMBIG=0.75; MIN_CONS_SUPPORT=9",
+            "depth_of_coverage_threshold": ">10x",
+            "if_assembly_other": "Not Provided [GENEPIO:0001668]",
+            "if_bioinformatic_protocol_is_other_specify": "Not Provided [GENEPIO:0001668]",
+            "if_consensus_other": "Not Provided [GENEPIO:0001668]",
+            "if_lineage_identification_other": "Not Provided [GENEPIO:0001668]",
+            "if_mapping_other": "Not Provided [GENEPIO:0001668]",
+            "if_preprocessing_other": "Not Provided [GENEPIO:0001668]",
+            "subtyping_software_name": "IRMA (Iterative Refinement Meta-Assembler)",
+            "mapping_params": "Default NCIT:C48156",
+            "preprocessing_params": "--cut_front --cut_tail --cut_mean_quality 15 --qualified_quality_phred 15 --trim_poly_x --length_required 50 --detect_adapter_for_pe",
+            "variant_calling_params": "Default NCIT:C48156",
+            "lineage_analysis_date": "Not Provided [GENEPIO:0001668]",
+            "bioinformatics_protocol_software_version": "IRMA v1.2.0",
+            "consensus_sequence_software_version": "IRMA v1.2.0",
+            "dehosting_method_software_version": "nf-core/taxprofiler v1.2.1",
+            "mapping_software_version": "IRMA v1.2.0",
+            "preprocessing_software_version": "fastp v0.20.0",
+            "variant_calling_software_version": "in-house [NCIT:C126386]",
+            "typing_software": "IRMA v1.2.0",
+            "clade_assignment_software": "nextclade",
+            "bioinformatics_protocol_software_name": "IRMA (Iterative Refinement Meta-Assembler)",
+            "consensus_sequence_software_name": "IRMA (Iterative Refinement Meta-Assembler)",
+            "dehosting_method_software_name": "nf-core/taxprofiler",
+            "mapping_software_name": "IRMA (Iterative Refinement Meta-Assembler)",
+            "preprocessing_software_name": "fastp",
+            "variant_calling_software_name": "IRMA (Iterative Refinement Meta-Assembler)"
         }
     }
 }
