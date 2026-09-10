@@ -541,13 +541,6 @@ class Download(BaseModule):
                     row[index] = ""
             return row
 
-        def clean_cell(value):
-            return "" if value is None else str(value).strip()
-
-        def log_sample_error(sample, entry):
-            self.include_error(entry=entry, sample=sample)
-            stderr.print(f"[red]{entry}")
-
         if not os.path.isfile(meta_f_path):
             self.log.error("Metadata file does not exist on %s", local_folder)
             stderr.print("[red] METADATA_LAB.xlsx do not exist in" + local_folder)
@@ -557,53 +550,15 @@ class Download(BaseModule):
         sample_id_col = self.metadata_processing.get(
             "sample_id_col", "Sample ID given for sequencing"
         )
-        alt_sample_id_col = self.metadata_processing.get("alternative_sample_id_col")
         try:
             index_sampleID = meta_header.index(sample_id_col)
         except ValueError:
             raise MetadataError(
                 f"Configured sample_id_col '{sample_id_col}' not found in metadata header"
             )
-        index_alt_sampleID = (
-            meta_header.index(alt_sample_id_col)
-            if alt_sample_id_col in meta_header
-            else None
-        )
         index_layout = meta_header.index("Library Layout")
         index_fastq_r1 = meta_header.index("Sequence file R1")
         index_fastq_r2 = meta_header.index("Sequence file R2")
-        delivery_type_col = self.metadata_processing.get(
-            "sample_delivery_type_col", "Sample delivery type"
-        )
-        index_delivery_type = (
-            meta_header.index(delivery_type_col)
-            if delivery_type_col in meta_header
-            else None
-        )
-        delivery_type_enums = self.metadata_processing.get(
-            "sample_delivery_type_enums", ["Isolate", "None", "Sequence"]
-        )
-        sequence_delivery_values = self.metadata_processing.get(
-            "sequence_delivery_values", ["Sequence"]
-        )
-        sequence_required_id_col = self.metadata_processing.get(
-            "sequence_delivery_required_id_col",
-            "Isolate ID given by the SUBMITTING institution",
-        )
-        index_sequence_required_id = (
-            meta_header.index(sequence_required_id_col)
-            if sequence_required_id_col in meta_header
-            else None
-        )
-        if index_delivery_type is not None and index_sequence_required_id is None:
-            raise MetadataError(
-                f"Configured sequence_delivery_required_id_col "
-                f"'{sequence_required_id_col}' not found in metadata header"
-            )
-        delivery_type_enums = {str(value).strip() for value in delivery_type_enums}
-        sequence_delivery_values = {
-            str(value).strip() for value in sequence_delivery_values
-        }
         skip_rows_after_header = int(
             self.metadata_processing.get("skip_rows_after_header") or 0
         )
@@ -616,8 +571,6 @@ class Download(BaseModule):
         for row in islice(metadata_ws.values, first_data_row, metadata_ws.max_row):
             counter += 1
             sample_id = row[index_sampleID]
-            if not sample_id and index_alt_sampleID is not None:
-                sample_id = row[index_alt_sampleID]
             if sample_id:
                 try:
                     s_name = str(sample_id).strip()
@@ -640,53 +593,7 @@ class Download(BaseModule):
                         stderr.print(log_text)
                         self.include_warning(log_text, sample=s_name)
                         continue
-                fastq_r1 = clean_cell(row[index_fastq_r1])
-                fastq_r2 = clean_cell(row[index_fastq_r2])
-                if index_delivery_type is not None:
-                    delivery_type = clean_cell(row[index_delivery_type])
-                    if delivery_type not in delivery_type_enums:
-                        error_text = (
-                            f"Invalid {delivery_type_col} value for sample {s_name}: "
-                            f"{delivery_type or '<empty>'}. Allowed values: "
-                            f"{', '.join(sorted(delivery_type_enums))}"
-                        )
-                        log_sample_error(s_name, error_text)
-                        continue
-                    requires_sequence = delivery_type in sequence_delivery_values
-                    required_id = (
-                        clean_cell(row[index_sequence_required_id])
-                        if index_sequence_required_id is not None
-                        else ""
-                    )
-                    if requires_sequence and not required_id:
-                        error_text = f"Missing {sequence_required_id_col} for sequence sample {s_name}"
-                        log_sample_error(s_name, error_text)
-                    if requires_sequence and not fastq_r1:
-                        error_text = (
-                            f"Sequence sample {s_name} must define Sequence file R1"
-                        )
-                        log_sample_error(s_name, error_text)
-                        continue
-                    if not requires_sequence:
-                        if required_id:
-                            error_text = (
-                                f"{s_name} is marked as a non-sequenced sample, "
-                                f"so it must not have {sequence_required_id_col}"
-                            )
-                            log_sample_error(s_name, error_text)
-                        if fastq_r1 or fastq_r2:
-                            error_text = (
-                                f"Non-sequence sample {s_name} must not define "
-                                "Sequence file R1/R2"
-                            )
-                            log_sample_error(s_name, error_text)
-                        sample_file_dict[s_name] = {
-                            "sequence_file_R1": "",
-                            "sequence_file_R2": "",
-                            "_metadata_only": True,
-                        }
-                        continue
-                if not fastq_r1:
+                if not row[index_fastq_r1]:
                     log_text = "Sequence File R1 not defined in Metadata for sample %s"
                     stderr.print(f"[red]{str(log_text % s_name)}")
                     if self.metadata_only:
@@ -724,9 +631,13 @@ class Download(BaseModule):
 
                 sample_file_dict[s_name] = {}
                 # TODO: move these keys to configuration.json
-                sample_file_dict[s_name]["sequence_file_R1"] = fastq_r1
-                if fastq_r2:
-                    sample_file_dict[s_name]["sequence_file_R2"] = fastq_r2
+                sample_file_dict[s_name]["sequence_file_R1"] = row[
+                    index_fastq_r1
+                ].strip()
+                if row[index_fastq_r2]:
+                    sample_file_dict[s_name]["sequence_file_R2"] = row[
+                        index_fastq_r2
+                    ].strip()
             else:
                 txt = f"Sample for row {counter} in metadata skipped. No sample ID nor file provided"
                 self.log.warning(txt)
@@ -865,10 +776,7 @@ class Download(BaseModule):
             self.include_new_key(sample=sample)
         metafiles_list = sorted(
             sum(
-                [
-                    self._sample_sequence_files(fi)
-                    for _, fi in sample_files_dict.items()
-                ],
+                [self._sample_sequence_files(fi) for _, fi in sample_files_dict.items()],
                 [],
             )
         )
@@ -1194,12 +1102,6 @@ class Download(BaseModule):
         def filldf_unique_id_col(meta_df):
             """Fill the unique ID col if missing with other alternative IDs"""
             meta_df = skip_template_rows(meta_df)
-
-            def is_missing_value(value):
-                if pd.isnull(value):
-                    return True
-                return isinstance(value, str) and not value.strip()
-
             unique_id_col = self.metadata_processing.get("sample_id_col")
             if not unique_id_col:
                 raise MetadataError(
@@ -1214,22 +1116,16 @@ class Download(BaseModule):
                 "Sequence file R1",
             ]
             alt_id_cols = [col for col in alt_id_cols if col]
-            missing_alt_cols = [
-                col for col in alt_id_cols if col not in meta_df.columns
-            ]
+            missing_alt_cols = [col for col in alt_id_cols if col not in meta_df.columns]
             if missing_alt_cols:
                 raise MetadataError(
                     f"Configured alternative ID column(s) not found in metadata header: {missing_alt_cols}"
                 )
-            if meta_df[unique_id_col].apply(is_missing_value).any():
+            if meta_df[unique_id_col].isnull().any():
                 for index, row in meta_df.iterrows():
-                    if is_missing_value(row[unique_id_col]):
+                    if pd.isnull(row[unique_id_col]):
                         replacement_col = next(
-                            (
-                                col
-                                for col in alt_id_cols
-                                if not is_missing_value(row[col])
-                            ),
+                            (col for col in alt_id_cols if pd.notnull(row[col])),
                             None,
                         )
                         if replacement_col:
@@ -1244,9 +1140,7 @@ class Download(BaseModule):
             return meta_df
 
         # Get every sheet from the first excel file
-        excel_df = pd.read_excel(
-            excel_file, dtype=str, sheet_name=None, keep_default_na=False
-        )
+        excel_df = pd.read_excel(excel_file, dtype=str, sheet_name=None)
         meta_df = excel_df[metadata_sheet]
         if header_flag in meta_df.columns:
             excel_df[metadata_sheet] = filldf_unique_id_col(meta_df)
